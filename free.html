@@ -144,8 +144,7 @@
 ██████████    ██████████
 ██████████    ██████████
 ████████████████████████
-████████████████████████
-⠀⠀⠀⠀⠀⠀⠀⠀⠀</pre>
+████████████████████████</pre>
                        <button class="close-btn" onclick="document.getElementById('premium-modal').style.display='none'">BACK TO FILES</button>
                    </div>
                </div>
@@ -170,16 +169,22 @@
                   ];
 
                    const observer = new MutationObserver(() => {
-                       const btns = document.querySelectorAll('input[type="button"]');
+                       const btns = document.querySelectorAll('.main-content input[type="button"]');
                        btns.forEach(btn => {
-                           if (premiumFiles.includes(btn.value.trim()) && !btn.dataset.locked) {
-                               btn.dataset.locked = "true";
-                               btn.onclick = (e) => {
-                                   e.stopImmediatePropagation();
-                                   document.getElementById('premium-modal').style.display = 'flex';
-                                   return false;
-                               };
-                               btn.style.opacity = "0.99"; // Subtle hint it's locked
+                           const val = btn.value.trim();
+                           
+                           // If it matches our specific buggy string, lock it.
+                           if (val.includes("v0_7_0_Offline_Signed(1)") || premiumFiles.includes(val)) {
+                               if (!btn.dataset.locked) {
+                                   btn.dataset.locked = "true";
+                                   btn.onclick = (e) => {
+                                       e.preventDefault();
+                                       e.stopImmediatePropagation();
+                                       document.getElementById('premium-modal').style.display = 'flex';
+                                       return false;
+                                   };
+                                   btn.style.opacity = "0.8"; 
+                               }
                            }
                        });
                    });
