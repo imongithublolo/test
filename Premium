@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UGS | AMOLED Launcher</title>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --accent-color: #ffffff; 
+            --card-bg: #0a0a0a;
+            --border-color: #1a1a1a;
+            --text-main: #ffffff;
+            --text-dim: #bbbbbb;
+            --error-color: #ff3333; 
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: Tahoma, Verdana, sans-serif;
+            min-height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-y: auto; 
+        }
+
+        /* --- MODAL STYLES --- */
+        .modal-overlay {
+            display: none; 
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6); 
+            backdrop-filter: blur(10px); 
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 30px;
+            width: 350px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            border-radius: 4px;
+        }
+
+        .modal-box h2 {
+            margin-top: 0;
+            font-size: 18px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .modal-box p {
+            color: var(--text-dim);
+            font-size: 13px;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        .modal-btns {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn-modal-confirm {
+            background: #ffffff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .btn-modal-cancel {
+            background: transparent;
+            color: #fff;
+            border: 1px solid #333;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        /* --- END MODAL STYLES --- */
+
+        .status-box, .blob-control-box {
+            position: absolute;
+            top: 20px;
+            padding: 10px;
+            border: 1px solid var(--text-dim);
+            color: var(--text-main);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .status-box { left: 20px; text-align: left; }
+        .blob-control-box { right: 20px; text-align: right; min-width: 150px; }
+
+        .blob-link {
+            display: block;
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 10px;
+            margin: 5px 0;
+            word-break: break-all;
+            font-family: monospace;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+
+        .btn-action {
+            color: var(--text-main);
+            text-decoration: none;
+            font-size: 12px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            font-family: inherit;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+
+        .btn-revoke { color: var(--error-color); margin-top: 5px; display: none; }
+
+        .settings-corner {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 35px;
+            height: 35px;
+            cursor: pointer;
+            z-index: 100;
+            transition: transform 0.4s ease, opacity 0.3s ease;
+            opacity: 0.6;
+            filter: invert(1);
+        }
+
+        .settings-corner:hover {
+            transform: rotate(90deg);
+            opacity: 1;
+        }
+
+        .launch-center {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 0; 
+        }
+
+        .ascii-art {
+            font-family: monospace;
+            font-size: 8px;
+            line-height: 1.2;
+            color: var(--text-main);
+            white-space: pre;
+            margin-bottom: 20px;
+            pointer-events: none;
+            user-select: none;
+            transform: scale(0.8);
+        }
+
+        @media (min-width: 800px) {
+            .ascii-art { font-size: 10px; transform: scale(1); }
+        }
+
+        .launch-subtitle {
+            color: var(--text-dim);
+            font-size: 14px;
+            margin-bottom: 30px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+
+        .btn-launch {
+            background: transparent;
+            border: 1px solid var(--text-main);
+            color: var(--text-main);
+            padding: 15px 50px;
+            font-size: 18px;
+            font-family: Tahoma, sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-launch:hover {
+            background: var(--text-main);
+            color: var(--bg-color);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Launch Modal -->
+    <div id="modalOverlay" class="modal-overlay">
+        <div class="modal-box">
+            <h2>INITIALIZING</h2>
+            <p>Ready to load UGS Files in a cloaked window?</p>
+            <div class="modal-btns">
+                <button class="btn-modal-cancel" onclick="toggleModal('modalOverlay', false)">CANCEL</button>
+                <button class="btn-modal-confirm" onclick="confirmLaunch()">LAUNCH</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsOverlay" class="modal-overlay">
+        <div class="modal-box">
+            <h2>SETTINGS</h2>
+            <p>Configuration panel is currently under maintenance.<br><small>Version 2.1 expected soon.</small></p>
+            <div class="modal-btns">
+                <button class="btn-modal-confirm" onclick="toggleModal('settingsOverlay', false)">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="ui-wrapper" style="display: contents;">
+        <div class="status-box">
+            Stats;<br>
+            Ping: <span id="ping">--</span>ms
+        </div>
+
+        <div class="blob-control-box">
+            <button class="btn-action" onclick="generateBlob()">Launch in Blob</button>
+            <div id="blobUrlDisplay" class="blob-link"></div>
+            <button id="revokeBtn" class="btn-action btn-revoke" onclick="revokeBlob()">Revoke URL</button>
+        </div>
+
+        <div class="launch-center">
+<pre class="ascii-art">
+░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░ ░▒▓███████▓▒░      ░▒▓████████▓▒░▒▓█▓▒░▒▓█▓▒░      ░▒▓████████▓▒░░▒▓███████▓▒░                  ░▒▓█▓▒░░▒▓█▓▒░▒▓███████▓▒░  
+░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░               ░▒▓█▓▒░      ░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░                          ░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░ 
+░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░               ░▒▓█▓▒░      ░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░                          ░▒▓█▓▒▒▓█▓▒░       ░▒▓█▓▒░ 
+░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒▒▓███▓▒░░▒▓██████▓▒░         ░▒▓██████▓▒░ ░▒▓█▓▒░▒▓█▓▒░      ░▒▓██████▓▒░  ░▒▓██████▓▒░                    ░▒▓█▓▒▒▓█▓▒░ ░▒▓██████▓▒░  
+░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░              ░▒▓█▓▒░                    ░▒▓█▓▓█▓▒░ ░▒▓█▓▒░        
+░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░              ░▒▓█▓▒░                    ░▒▓█▓▓█▓▒░ ░▒▓█▓▒░        
+ ░▒▓██████▓▒░ ░▒▓██████▓▒░░▒▓███████▓▒░        ░▒▓█▓▒░      ░▒▓█▓▒░▒▓████████▓▒░▒▓████████▓▒░▒▓███████▓▒░                      ░▒▓██▓▒░  ░▒▓████████▓▒░  
+</pre>
+            <div class="launch-subtitle">v2.0 Patched :D</div>
+            <button class="btn-launch" onclick="toggleModal('modalOverlay', true)">Enter Files</button>
+        </div>
+
+        <img src="https://s3.amazonaws.com/static.graphemica.com/glyphs/i500s/000/005/820/original/2699-500x500.png?1275296120" 
+             class="settings-corner" 
+             alt="Settings" 
+             onclick="toggleModal('settingsOverlay', true)">
+    </div>
+
+    <script>
+        let activeBlobUrl = null;
+
+        // Versatile Modal Logic
+        function toggleModal(id, show) {
+            document.getElementById(id).style.display = show ? 'flex' : 'none';
+        }
+
+        function confirmLaunch() {
+            toggleModal('modalOverlay', false);
+            launchCloaked();
+        }
+
+        function updatePing() {
+            const start = Date.now();
+            fetch(window.location.href, { mode: 'no-cors' }).then(() => {
+                const delta = Date.now() - start;
+                document.getElementById('ping').innerText = delta;
+            }).catch(() => { document.getElementById('ping').innerText = '14'; });
+        }
+        setInterval(updatePing, 3000);
+        updatePing();
+
+        function generateBlob() {
+            const currentContent = document.documentElement.outerHTML;
+            const blob = new Blob([currentContent], { type: 'text/html' });
+            if (activeBlobUrl) URL.revokeObjectURL(activeBlobUrl);
+            activeBlobUrl = URL.createObjectURL(blob);
+            document.getElementById('blobUrlDisplay').innerText = activeBlobUrl;
+            document.getElementById('revokeBtn').style.display = 'inline-block';
+            window.open(activeBlobUrl, '_blank');
+        }
+
+        function revokeBlob() {
+            if (activeBlobUrl) {
+                URL.revokeObjectURL(activeBlobUrl);
+                activeBlobUrl = null;
+                document.getElementById('blobUrlDisplay').innerText = 'URL Revoked';
+                document.getElementById('revokeBtn').style.display = 'none';
+            }
+        }
+
+        function launchCloaked(isBlob = false) {
+            let targetDoc;
+            if (isBlob) {
+                targetDoc = document;
+            } else {
+                const win = window.open();
+                if (!win) {
+                    alert("Pop-up blocked! Please allow pop-ups for this site.");
+                    return;
+                }
+                win.document.title = "Google Classroom"; 
+                targetDoc = win.document;
+            }
+            
+            const iframe = targetDoc.createElement('iframe');
+            const mainHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>UGS Files</title>
+                <style>
+                    body { font-family: Tahoma, Verdana, sans-serif; background-color: #000000; color: #ffffff; margin: 0; display: flex; min-height: 100vh; overflow-y: auto; }
+                    .sidebar { position: fixed; left: 0; top: 0; width: 80px; height: 100vh; background: #0a0a0a; border-right: 1px solid #1a1a1a; padding: 20px 10px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; box-sizing: border-box; z-index: 10; }
+                    .sidebar-btn { background: #111; border: 1px solid #222; color: #fff; padding: 12px; font-weight: bold; border-radius: 4px; cursor: pointer; text-align: center; flex-shrink: 0; }
+                    .sidebar-btn:hover { border-color: #fff; }
+                    .main-content { margin-left: 80px; padding: 40px; flex: 1; min-height: 100vh; overflow-y: auto; }
+                    h1 { font-size: 2.5rem; letter-spacing: -1px; margin-bottom: 20px; color: #ffffff; }
+                    input[type="text"] { background: #0a0a0a; border: 1px solid #1a1a1a; padding: 15px; width: 100%; max-width: 500px; color: white; margin-bottom: 30px; font-family: inherit; }
+                    .letter-header { color: #ffffff; font-size: 22px; border-bottom: 1px solid #1a1a1a; margin: 30px 0 15px 0; }
+                    input[type="button"] { background: #0a0a0a; border: 1px solid #1a1a1a; color: #ffffff; padding: 12px 20px; width: 100%; max-width: 700px; text-align: left; margin-bottom: 8px; cursor: pointer; transition: 0.2s; font-family: inherit; }
+                    input[type="button"]:hover { background: #111; border-color: #fff; }
+                </style>
+            </head>
+            <body>
+                <div class="sidebar" id="sidebar"></div>
+                <div class="main-content">
+                    <h1>UGS FILES</h1>
+                    <input type="text" placeholder="Search files :3" id="searchInput">
+                    <div id="sections-container"></div>
+                </div>
+                <script src="https://cdn.jsdelivr.net/gh/mcgee1717/994894838923761723@main/searchbut.js"><\/script>
+                <script src="https://cdn.jsdelivr.net/gh/mcgee1717/994894838923761723@49119bc/games.js"><\/script>
+            </body>
+            </html>`;
+
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = 'none';
+            iframe.style.position = 'fixed';
+            iframe.style.inset = '0';
+            
+            targetDoc.body.innerHTML = '';
+            targetDoc.body.style.margin = '0';
+            targetDoc.body.appendChild(iframe);
+            
+            iframe.contentWindow.document.open();
+            iframe.contentWindow.document.write(mainHtml);
+            iframe.contentWindow.document.close();
+        }
+    </script>
+</body>
+</html>
